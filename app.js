@@ -4,10 +4,11 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
-var routes = require('./routes/index');
+var Tail = require('tail').Tail;
 
 var app = express();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -21,13 +22,46 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes);
+
+app.get('/', function(req, res, next) {
+    res.render('index', { title: 'Express' });
+});
+
+app.post('/dashboard', (req, res, next) => {
+
+    var tail = new Tail(req.body.accessLogs);
+
+
+
+    io.on('connection', (socket) => {
+
+        tail.on('line', (data) => {
+            console.log(data);
+            io.emit('log', data);
+        })
+
+        console.log('a user connected');
+
+        socket.on('disconnect', () => {
+            console.log('user disconnected');
+        });
+
+    });
+
+
+
+    // console.log(req.body);
+    res.render('dashboard');
+})
+
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
 });
 
 // error handlers
@@ -35,24 +69,26 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
+    app.use(function(err, req, res, next) {
+        res.status(err.status || 500);
+        res.render('error', {
+            message: err.message,
+            error: err
+        });
     });
-  });
 }
 
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
+    res.status(err.status || 500);
+    res.render('error', {
+        message: err.message,
+        error: {}
+    });
 });
 
 
-module.exports = app;
+http.listen(3000, () => {
+    console.log('listening on 3000');
+})
