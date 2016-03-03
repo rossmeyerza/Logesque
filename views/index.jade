@@ -1,5 +1,11 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+    form(action="/config" method="post")
+        label(for="remote") remote server
+            input(type="text" name="remote")
+        label(for="accessLogs") access logs directory
+            input(type="text" name="accessLogs")
+        label(for="userName") User Name:
+            input(type="text" name="userName")
+        input(type="submit")
